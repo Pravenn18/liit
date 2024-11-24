@@ -20,10 +20,12 @@ import { phoneAtom } from '@/data/atom/userAtom';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { Message } from '@/types/Message';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getUserByPhone } from '@/services/userService';
+import {
+  fetchAndSubscribeToUserStatus,
+  getUserByPhone,
+} from '@/services/userService';
 import { getReceiverId } from '@/services/chatService';
 import { userLastSeenAtom, userOnlineStatusAtom } from '@/data/atom/userState';
-import { ActivityProvider, useActivity } from '@/components/ActivityTracker';
 
 const backgroundImage = require('@/assets/images/whatsappbg.png');
 
@@ -80,13 +82,6 @@ const ChatContent = ({
   messages: Message[];
 }) => {
   const [message, setMessage] = useState('');
-  const [lastSeen] = useAtom(userLastSeenAtom);
-  const [isOnline] = useAtom(userOnlineStatusAtom);
-  const { resetInactivityTimer } = useActivity();
-
-  useEffect(() => {
-    resetInactivityTimer();
-  }, []);
 
   const handleSendMessage = async () => {
     if (message.trim()) {
@@ -95,10 +90,13 @@ const ChatContent = ({
     }
   };
 
+  const [contactUserId, setContactUserId] = useState<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       const markMessagesAsSeen = async () => {
         const contactId = await getUserByPhone(contactPhone);
+        setContactUserId(contactId?.id || null);
         const receiverId = await getReceiverId(chatId, userPhone);
         try {
           const unseenMessages = messages.filter(
@@ -115,6 +113,19 @@ const ChatContent = ({
       markMessagesAsSeen();
     }, [messages]),
   );
+  // TODO
+  const [isOnline, setIsOnline] = useAtom(userOnlineStatusAtom);
+
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      const userData = await getUserByPhone(contactPhone);
+      const data = await fetchAndSubscribeToUserStatus(
+        userData?.id || '',
+        setIsOnline,
+      );
+    };
+    fetchUserStatus();
+  });
 
   return (
     <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
@@ -124,11 +135,7 @@ const ChatContent = ({
           {isOnline ? (
             <Text className="text-sm text-green-500">Online</Text>
           ) : (
-            lastSeen && (
-              <Text className="text-sm text-red-500 font-bold">
-                Last seen: {new Date(lastSeen).toLocaleString()}
-              </Text>
-            )
+            <Text className="text-sm text-red-500 font-bold">Offline</Text>
           )}
         </View>
 
@@ -210,15 +217,13 @@ const ChatScreen = () => {
   const filteredMessages = messages.filter((msg) => msg !== null);
 
   return (
-    <ActivityProvider userId={userId}>
-      <ChatContent
-        userPhone={phone}
-        contactPhone={contactPhone}
-        chatId={chatId}
-        userId={userId}
-        messages={filteredMessages}
-      />
-    </ActivityProvider>
+    <ChatContent
+      userPhone={phone}
+      contactPhone={contactPhone}
+      chatId={chatId}
+      userId={userId}
+      messages={filteredMessages}
+    />
   );
 };
 

@@ -19,9 +19,6 @@ import ChatsTopBar from '@/components/chats-top-bar';
 import contactsAtom from '@/data';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserByPhone } from '@/services/userService';
-import { userLastSeenAtom, userOnlineStatusAtom } from '@/data/atom/userState';
-import { router } from 'expo-router';
-import { ActivityProvider } from '@/components/ActivityTracker';
 
 const HomeScreen = () => {
   const [contacts] = useAtom(contactsAtom);
@@ -115,91 +112,89 @@ const HomeScreen = () => {
   }, []);
 
   return (
-    <ActivityProvider userId={userId}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#111b21' }}>
-        <ChatsTopBar />
-        <FlatList
-          className="w-full pt-2"
-          data={contacts}
-          ItemSeparatorComponent={() => (
-            <View className="bg-[#333] h-[1px] my-1 left-16" />
-          )}
-          renderItem={({ item }) => (
-            <ChatsList
-              name={item.name}
-              phone={item.phone}
-              message={latestMessage ? latestMessage.content : ''}
-            />
-          )}
-        />
-        <Modal
-          visible={noUserFoundModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setNoUserFoundModalVisible(false)}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#111b21' }}>
+      <ChatsTopBar />
+      <FlatList
+        className="w-full pt-2"
+        data={contacts}
+        ItemSeparatorComponent={() => (
+          <View className="bg-[#333] h-[1px] my-1 left-16" />
+        )}
+        renderItem={({ item }) => (
+          <ChatsList
+            name={item.name}
+            phone={item.phone}
+            message={latestMessage ? latestMessage.content : ''}
+          />
+        )}
+      />
+      <Modal
+        visible={noUserFoundModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setNoUserFoundModalVisible(false)}
+      >
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
           <View
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+            style={{
+              width: 300,
+              padding: 20,
+              backgroundColor: 'white',
+              borderRadius: 10,
+            }}
           >
-            <View
-              style={{
-                width: 300,
-                padding: 20,
-                backgroundColor: 'white',
-                borderRadius: 10,
-              }}
-            >
-              <Text>No user found with this phone number.</Text>
-              <Button
-                title="Close"
-                onPress={() => setNoUserFoundModalVisible(false)}
-              />
-            </View>
-          </View>
-        </Modal>
-        <TouchableOpacity style={styles.addButton} onPress={handleOpenContacts}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-        <Modal visible={isModalVisible} animationType="slide">
-          <View style={{ flex: 1, backgroundColor: '#333', padding: 20 }}>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search Contacts"
-              placeholderTextColor="#888"
-              style={{
-                backgroundColor: '#444',
-                color: '#fff',
-                padding: 10,
-                borderRadius: 5,
-                marginBottom: 20,
-              }}
+            <Text>No user found with this phone number.</Text>
+            <Button
+              title="Close"
+              onPress={() => setNoUserFoundModalVisible(false)}
             />
-            <FlatList
-              style={{ width: '100%' }}
-              data={filteredContacts}
-              keyExtractor={(item) => item.id || item.phone}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleAddContact(item)}>
-                  <Text
-                    style={{
-                      backgroundColor: '#555',
-                      color: '#fff',
-                      padding: 10,
-                      marginBottom: 10,
-                      borderRadius: 5,
-                    }}
-                  >
-                    {item.name} - {item.phone}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-            <Button title="Close" onPress={() => setModalVisible(false)} />
           </View>
-        </Modal>
-      </SafeAreaView>
-    </ActivityProvider>
+        </View>
+      </Modal>
+      <TouchableOpacity style={styles.addButton} onPress={handleOpenContacts}>
+        <Text style={styles.addButtonText}>+</Text>
+      </TouchableOpacity>
+      <Modal visible={isModalVisible} animationType="slide">
+        <View style={{ flex: 1, backgroundColor: '#333', padding: 20 }}>
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search Contacts"
+            placeholderTextColor="#888"
+            style={{
+              backgroundColor: '#444',
+              color: '#fff',
+              padding: 10,
+              borderRadius: 5,
+              marginBottom: 20,
+            }}
+          />
+          <FlatList
+            style={{ width: '100%' }}
+            data={filteredContacts}
+            keyExtractor={(item) => item.id || item.phone}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => handleAddContact(item)}>
+                <Text
+                  style={{
+                    backgroundColor: '#555',
+                    color: '#fff',
+                    padding: 10,
+                    marginBottom: 10,
+                    borderRadius: 5,
+                  }}
+                >
+                  {item.name} - {item.phone}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+          <Button title="Close" onPress={() => setModalVisible(false)} />
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 

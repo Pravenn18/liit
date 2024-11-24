@@ -11,7 +11,6 @@ export const updateUserLastSeen = async (userId: string) => {
     console.error('Error updating last seen:', error);
     throw error;
   }
-
   return data;
 };
 
@@ -21,21 +20,30 @@ export const updateUserOnlineStatus = async (
 ) => {
   const { data, error } = await supabase
     .from('users')
-    .update({ online })
+    .update({ online: online })
     .eq('id', userId);
 
   if (error) {
     console.error('Error updating online status:', error);
     throw error;
   }
-
   return data;
 };
-
-export const subscribeToUserStatus = (
+export const fetchAndSubscribeToUserStatus = async (
   userId: string,
-  callback: (online: boolean, lastSeen: string | null) => void,
+  callback: (online: boolean) => void,
 ) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('online')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching user status:', error);
+    throw error;
+  }
+
   const subscription = supabase
     .channel(`public:users:id=eq.${userId}`)
     .on(
@@ -47,20 +55,22 @@ export const subscribeToUserStatus = (
         filter: `id=eq.${userId}`,
       },
       (payload) => {
-        const { online, last_seen } = payload.new as {
+        const { online } = payload.new as {
           online: boolean;
-          last_seen: string | null;
         };
-        callback(online, last_seen);
+        callback(online);
+        console.log(`User ${userId} online status changed to:`, online);
       },
     )
     .subscribe();
 
-  return () => {
-    supabase.removeChannel(subscription);
+  return {
+    initialStatus: data.online,
+    unsubscribe: () => {
+      supabase.removeChannel(subscription);
+    },
   };
 };
-
 export const getUserByPhone = async (phone: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
