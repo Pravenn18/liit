@@ -1,0 +1,60 @@
+name: Add Issues to Supabase DB
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - closed
+
+jobs:
+  add_to_supabase:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          npm install axios
+
+      - name: Add issue to Supabase
+        env:
+          SUPABASE_URL: https://wfxwnqgtzqfceinjeyvb.supabase.co
+          SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeHducWd0enFmY2VpbmpleXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMxMzAzMTksImV4cCI6MjA0ODcwNjMxOX0.QNebpG8jwVHUJoFEzUk6QSSVLYFJ8wfXpBUF1yULDxU
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          ISSUE_BODY="${{ github.event.issue.body }}"
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_STATE="${{ github.event.issue.state }}"
+          ISSUE_CREATED_AT="${{ github.event.issue.created_at }}"
+
+          # Send issue data to Supabase
+          node -e "
+            const axios = require('axios');
+            const supabaseUrl = process.env.SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_KEY;
+            const issueData = {
+              title: '$ISSUE_TITLE',
+              body: '$ISSUE_BODY',
+              url: '$ISSUE_URL',
+              state: '$ISSUE_STATE',
+              created_at: '$ISSUE_CREATED_AT',
+            };
+
+            axios.post(\`\${supabaseUrl}/rest/v1/issues\`, issueData, {
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': \`Bearer \${supabaseKey}\`,
+              },
+            })
+            .then(response => console.log('Issue added to Supabase:', response.data))
+            .catch(error => console.error('Error adding issue to Supabase:', error));
+          "
