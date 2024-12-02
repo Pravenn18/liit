@@ -7,4 +7,5 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   throw new Error('Supabase configuration is missing.');
 }
 
+
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
