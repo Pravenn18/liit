@@ -1,5 +1,5 @@
 import { phoneAtom } from '@/data/atom/userAtom';
-import { getOrCreateChat } from '@/services/chatService';
+import { getGroupsByAdmin, getOrCreateChat } from '@/services/chatService';
 import { getUserByPhone } from '@/services/userService';
 import { router } from 'expo-router';
 import { useAtomValue } from 'jotai';
@@ -10,15 +10,17 @@ type ChatsListProps = {
   name: string;
   message: string | null;
   phone: string;
+  is_group?: boolean;
 };
 
 const icons = {
   user: require('@/assets/images/user.png'),
 };
 
-const ChatsList = ({ name, message, phone }: ChatsListProps) => {
+const ChatsList = ({ name, message, phone, is_group }: ChatsListProps) => {
   const selfPhone = useAtomValue(phoneAtom);
   const [chatId, setChatId] = useState<string>('');
+
   useEffect(() => {
     const fetchContacts = async () => {
       const contactId = await getUserByPhone(phone);
@@ -28,13 +30,33 @@ const ChatsList = ({ name, message, phone }: ChatsListProps) => {
         setChatId(chatId);
       }
     };
-    fetchContacts();
+    const fetchGroupChatId = async () => {
+      const userId = await getUserByPhone(selfPhone);
+      if (userId?.id) {
+        const groupData = await getGroupsByAdmin(userId.id);
+        const group = groupData.find((group) => group.name === name);
+        if (group) {
+          setChatId(group.chat_id);
+        }
+      }
+    };
+    if (is_group) {
+      fetchGroupChatId();
+    } else {
+      fetchContacts();
+    }
   }, []);
+
+  console.log('is_grouppoo2', JSON.stringify(is_group));
 
   const handlePress = () => {
     router.push({
       pathname: '/send-message',
-      params: { contactPhone: phone, chatId: chatId }, // Pass contactPhone as a parameter
+      params: {
+        contactPhone: phone,
+        chatId: chatId,
+        is_group: is_group?.toString(),
+      }, // Pass contactPhone as a parameter
     });
   };
 

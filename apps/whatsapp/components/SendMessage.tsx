@@ -1,5 +1,10 @@
 // screens/ChatScreen.tsx
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import {
   View,
   TextInput,
@@ -24,7 +29,7 @@ import {
   fetchAndSubscribeToUserStatus,
   getUserByPhone,
 } from '@/services/userService';
-import { getReceiverId } from '@/services/chatService';
+import { getChatIdData, getReceiverId } from '@/services/chatService';
 import { userLastSeenAtom, userOnlineStatusAtom } from '@/data/atom/userState';
 
 const backgroundImage = require('@/assets/images/whatsappbg.png');
@@ -74,12 +79,14 @@ const ChatContent = ({
   chatId,
   userId,
   messages,
+  is_group,
 }: {
   userPhone: string;
   contactPhone: string;
   chatId: string;
   userId: string;
   messages: Message[];
+  is_group?: any;
 }) => {
   const [message, setMessage] = useState('');
 
@@ -90,13 +97,27 @@ const ChatContent = ({
     }
   };
 
+  useEffect(() => {}, [messages]);
+
   const [contactUserId, setContactUserId] = useState<string | null>(null);
+
+  // useLayoutEffect(() => {
+  //   const getChatIdDetails = async () => {
+  //     const chatIdData = await getChatIdData(chatId);
+  //     console.log('chatIdData', JSON.stringify(chatIdData));
+  //     setIsGroup(chatIdData[0].is_group);
+  //   };
+
+  //   getChatIdDetails();
+  // }, []);
 
   useFocusEffect(
     useCallback(() => {
       const markMessagesAsSeen = async () => {
         const contactId = await getUserByPhone(contactPhone);
         setContactUserId(contactId?.id || null);
+        console.log('chatId', JSON.stringify(chatId));
+        console.log('contactId', JSON.stringify(contactId));
         const receiverId = await getReceiverId(chatId, userPhone);
         try {
           const unseenMessages = messages.filter(
@@ -116,16 +137,19 @@ const ChatContent = ({
   // TODO
   const [isOnline, setIsOnline] = useAtom(userOnlineStatusAtom);
 
+  console.log('is_grouppoo', JSON.stringify(is_group));
+
   useEffect(() => {
     const fetchUserStatus = async () => {
+      console.log('Calleddddd');
       const userData = await getUserByPhone(contactPhone);
       const data = await fetchAndSubscribeToUserStatus(
         userData?.id || '',
         setIsOnline,
       );
     };
-    fetchUserStatus();
-  });
+    if (!is_group) fetchUserStatus();
+  }, []);
 
   return (
     <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
@@ -189,9 +213,10 @@ const ChatContent = ({
 const ChatScreen = () => {
   const [phone] = useAtom(phoneAtom);
   const route = useRoute();
-  const { chatId, contactPhone } = route.params as {
+  const { chatId, contactPhone, is_group } = route.params as {
     chatId: string;
     contactPhone: string;
+    is_group: string;
   };
 
   const [messages] = useAtom(messagesAtom);
@@ -223,6 +248,7 @@ const ChatScreen = () => {
       chatId={chatId}
       userId={userId}
       messages={filteredMessages}
+      is_group={is_group}
     />
   );
 };
