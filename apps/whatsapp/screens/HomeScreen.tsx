@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { useAtom, useSetAtom } from 'jotai';
 import { phoneAtom } from '@/data/atom/userAtom';
 import { latestMessageAtom } from '@/data/atom/messageAtom';
@@ -19,6 +20,10 @@ import ChatsTopBar from '@/components/chats-top-bar';
 import contactsAtom from '@/data';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserByPhone } from '@/services/userService';
+import { useRouter } from 'expo-router';
+import { formatPhoneNumber } from '@/utils/utils';
+import { getGroupsByAdmin } from '@/services/chatService';
+import { Sound } from 'expo-av/build/Audio';
 
 const HomeScreen = () => {
   const [contacts] = useAtom(contactsAtom);
@@ -34,6 +39,8 @@ const HomeScreen = () => {
   const setContacts = useSetAtom(contactsAtom);
   const [noUserFoundModalVisible, setNoUserFoundModalVisible] = useState(false);
   const [userId, setUserId] = useState('');
+  const [groups, setGroups] = useState<any[]>([]);
+  const router = useRouter();
 
   const handleOpenContacts = async () => {
     const fetchedContacts = await fetchContacts();
@@ -42,6 +49,7 @@ const HomeScreen = () => {
     setModalVisible(true);
   };
 
+  console.log('groups', groups);
   useEffect(() => {
     const getUserId = async () => {
       const user = await getUserByPhone(phone);
@@ -62,11 +70,6 @@ const HomeScreen = () => {
     );
   }, [searchQuery, contactList]);
 
-  const formatPhoneNumber = (phoneNumber: string): string => {
-    const cleanedNumber = phoneNumber.replace(/\D/g, '');
-    return cleanedNumber.slice(-10);
-  };
-
   const handleAddContact = async (contact: {
     id: string | undefined;
     name: string;
@@ -75,10 +78,6 @@ const HomeScreen = () => {
     const formattedPhone = formatPhoneNumber(contact.phone);
     const user = await getUserByPhone(phone);
     const addedContact = await getUserByPhone(formattedPhone);
-    const contactData = await addContactToDb(
-      addedContact?.id ?? '',
-      user?.id ?? '',
-    );
 
     if (!addedContact) {
       setModalVisible(false);
@@ -111,8 +110,21 @@ const HomeScreen = () => {
     setUserIDFunc();
   }, []);
 
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const user = await getUserByPhone(phone);
+      if (user?.id) {
+        const groupsData = await getGroupsByAdmin(user.id);
+        setGroups(groupsData);
+      }
+    };
+    fetchGroups();
+  }, [phone]);
+
+  console.log('groups', JSON.stringify(groups));
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#111b21' }}>
+    <SafeAreaView className="flex-1 bg-[#111b21]">
       <ChatsTopBar />
       <FlatList
         className="w-full pt-2"
@@ -125,9 +137,38 @@ const HomeScreen = () => {
             name={item.name}
             phone={item.phone}
             message={latestMessage ? latestMessage.content : ''}
+            is_group={false}
           />
         )}
       />
+      <FlatList
+        className="w-full pt-2"
+        data={groups}
+        ItemSeparatorComponent={() => (
+          <View className="bg-[#333] h-[1px] my-1 left-16" />
+        )}
+        renderItem={({ item }) => (
+          <ChatsList
+            name={item.name}
+            phone={item.phone}
+            message={latestMessage ? latestMessage.content : ''}
+            is_group={true}
+          />
+        )}
+      />
+      <TouchableOpacity
+        style={{
+          padding: 10,
+          backgroundColor: 'blue',
+          borderRadius: 5,
+          margin: 10,
+        }}
+        onPress={() => router.push('/add-contact')}
+      >
+        <Text style={{ color: 'white', textAlign: 'center' }}>
+          Create Group
+        </Text>
+      </TouchableOpacity>
       <Modal
         visible={noUserFoundModalVisible}
         transparent={true}
