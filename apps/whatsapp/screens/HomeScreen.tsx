@@ -22,8 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getUserByPhone } from '@/services/userService';
 import { useRouter } from 'expo-router';
 import { formatPhoneNumber } from '@/utils/utils';
-import { getGroupsByAdmin } from '@/services/chatService';
-import { Sound } from 'expo-av/build/Audio';
+import { getGroupsByUserId } from '@/services/chatService';
 
 const HomeScreen = () => {
   const [contacts] = useAtom(contactsAtom);
@@ -114,7 +113,7 @@ const HomeScreen = () => {
     const fetchGroups = async () => {
       const user = await getUserByPhone(phone);
       if (user?.id) {
-        const groupsData = await getGroupsByAdmin(user.id);
+        const groupsData = await getGroupsByUserId(user.id);
         setGroups(groupsData);
       }
     };
