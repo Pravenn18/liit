@@ -1,5 +1,5 @@
 import { phoneAtom } from '@/data/atom/userAtom';
-import { getGroupsByAdmin, getOrCreateChat } from '@/services/chatService';
+import { getGroupsByUserId, getOrCreateChat } from '@/services/chatService';
 import { getUserByPhone } from '@/services/userService';
 import { router } from 'expo-router';
 import { useAtomValue } from 'jotai';
@@ -33,7 +33,7 @@ const ChatsList = ({ name, message, phone, is_group }: ChatsListProps) => {
     const fetchGroupChatId = async () => {
       const userId = await getUserByPhone(selfPhone);
       if (userId?.id) {
-        const groupData = await getGroupsByAdmin(userId.id);
+        const groupData = await getGroupsByUserId(userId.id);
         const group = groupData.find((group) => group.name === name);
         if (group) {
           setChatId(group.chat_id);
@@ -46,8 +46,6 @@ const ChatsList = ({ name, message, phone, is_group }: ChatsListProps) => {
       fetchContacts();
     }
   }, []);
-
-  console.log('is_grouppoo2', JSON.stringify(is_group));
 
   const handlePress = () => {
     router.push({
