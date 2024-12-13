@@ -27,6 +27,8 @@ import { Message } from '@/types/Message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   fetchAndSubscribeToUserStatus,
+  getGroupByChatId,
+  getUserById,
   getUserByPhone,
 } from '@/services/userService';
 import { getChatIdData, getReceiverId } from '@/services/chatService';
@@ -89,6 +91,7 @@ const ChatContent = ({
   is_group?: any;
 }) => {
   const [message, setMessage] = useState('');
+  const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
 
   const handleSendMessage = async () => {
     if (message.trim()) {
@@ -97,7 +100,32 @@ const ChatContent = ({
     }
   };
 
-  useEffect(() => {}, [messages]);
+  useEffect(() => {
+    const fetchUserNames = async () => {
+      const chatIdData = await getChatIdData(chatId);
+      const participantIds = chatIdData[0].participants;
+      const userNamesMap: { [key: string]: string } = {};
+
+      for (const participantId of participantIds) {
+        const user = await getUserById(participantId);
+        if (user) {
+          if (!Array.isArray(user)) {
+            userNamesMap[participantId] = user.name;
+          }
+        }
+      }
+      const groupData = await getGroupByChatId(chatId);
+      if (groupData && groupData.admin) {
+        const adminUser = await getUserById(groupData.admin);
+        if (adminUser) {
+          userNamesMap[groupData.admin] = adminUser.name;
+        }
+      }
+      setUserNames(userNamesMap);
+    };
+
+    fetchUserNames();
+  }, [chatId]);
 
   const [contactUserId, setContactUserId] = useState<string | null>(null);
 
@@ -151,6 +179,14 @@ const ChatContent = ({
     if (!is_group) fetchUserStatus();
   }, []);
 
+  if (!userNames) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <ImageBackground source={backgroundImage} style={{ flex: 1 }}>
       <SafeAreaView className="flex-1 p-5">
@@ -182,6 +218,20 @@ const ChatContent = ({
                     : 'bg-gray-200'
                 }`}
               >
+                {is_group && (
+                  <>
+                    <Text className="text-xs text-gray-500">
+                      {userNames[item.sender_id] || 'Unknown'}
+                    </Text>
+                    <View
+                      className={`flex-row p-2 rounded-lg ${
+                        item.sender_id === userId
+                          ? 'bg-green-200'
+                          : 'bg-gray-200'
+                      }`}
+                    />
+                  </>
+                )}
                 <Text className="text-sm">{item.content}</Text>
                 {item.sender_id === userId.toString() && (
                   <MessageStatus status={item.status} time={item.created_at} />
