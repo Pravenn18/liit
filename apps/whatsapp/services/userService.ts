@@ -71,6 +71,7 @@ export const fetchAndSubscribeToUserStatus = async (
     },
   };
 };
+
 export const getUserByPhone = async (phone: string): Promise<User | null> => {
   const { data, error } = await supabase
     .from('users')
@@ -80,6 +81,42 @@ export const getUserByPhone = async (phone: string): Promise<User | null> => {
 
   if (error) {
     console.warn('Error fetching user by phone:', error);
+    return null;
+  }
+
+  return data;
+};
+
+export const getUserById = async (
+  id: string | string[],
+): Promise<User[] | User | null> => {
+  let query = supabase.from('users').select('*');
+
+  if (Array.isArray(id)) {
+    query = query.in('id', id);
+  } else {
+    query = query.eq('id', id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.warn('Error fetching user by ID:', error);
+    return null;
+  }
+
+  return Array.isArray(id) ? data : data[0];
+};
+
+export const getGroupByChatId = async (chatId: string) => {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .eq('chat_id', chatId)
+    .single();
+
+  if (error) {
+    console.warn('Error fetching group by chat ID:', error);
     return null;
   }
 

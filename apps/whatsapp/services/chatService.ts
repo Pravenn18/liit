@@ -120,3 +120,53 @@ export const getChatIdData = async (chatId: string) => {
 
   return data;
 };
+
+export const getGroupsByUserId = async (userId: string) => {
+  // Fetch groups where the user is an admin
+  const { data: adminGroups, error: adminError } = await supabase
+    .from('groups')
+    .select('*')
+    .eq('admin', userId);
+
+  if (adminError) {
+    console.error('Error fetching groups where user is admin:', adminError);
+    throw adminError;
+  }
+
+  // Fetch chat IDs where the user is a participant
+  const { data: participantChats, error: participantChatsError } =
+    await supabase
+      .from('chats')
+      .select('id')
+      .contains('participants', [userId]);
+
+  if (participantChatsError) {
+    console.error(
+      'Error fetching chats where user is participant:',
+      participantChatsError,
+    );
+    throw participantChatsError;
+  }
+
+  const chatIds = participantChats.map((chat) => chat.id);
+
+  // Fetch groups where the chat ID is in the list of chat IDs
+  const { data: participantGroups, error: participantGroupsError } =
+    await supabase.from('groups').select('*').in('chat_id', chatIds);
+
+  if (participantGroupsError) {
+    console.error(
+      'Error fetching groups where user is participant:',
+      participantGroupsError,
+    );
+    throw participantGroupsError;
+  }
+
+  // Combine and return unique groups
+  const allGroups = [...adminGroups, ...participantGroups];
+  const uniqueGroups = Array.from(
+    new Set(allGroups.map((group) => group.id)),
+  ).map((id) => allGroups.find((group) => group.id === id));
+
+  return uniqueGroups;
+};
